@@ -179,7 +179,9 @@ PRODUCT_PACKAGES += \
     libshim_camera \
     libcamera_shim \
     camera.msm8916 \
-    Camera2
+    Camera2 \
+    Snap \
+    SnapdragonCamera
 
 # Permissions
 PRODUCT_COPY_FILES += \
@@ -411,6 +413,10 @@ PRODUCT_PACKAGES += \
 # Wifi
 PRODUCT_PACKAGES += \
     libwcnss_qmi \
+    libqsap_sdk \
+    libwpa_client \
+    wificond \
+    wifilogd \
     wcnss_service
 
 PRODUCT_PACKAGES += \
