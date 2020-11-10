@@ -13,18 +13,19 @@ LOCAL_C_INCLUDES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr/include
 LOCAL_ADDITIONAL_DEPENDENCIES := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ/usr
 
 LOCAL_SRC_FILES :=	\
-		sensors.cpp 			\
-		SensorBase.cpp			\
-		LightSensor.cpp			\
-		ProximitySensor.cpp		\
-		CompassSensor.cpp		\
-		Accelerometer.cpp				\
+		sensors.cpp \
+		SensorBase.cpp \
+		LightSensor.cpp \
+		ProximitySensor.cpp \
+		CompassSensor.cpp \
+		Accelerometer.cpp \
 		InputEventReader.cpp \
 		CalibrationManager.cpp \
 		NativeSensorManager.cpp \
-		VirtualSensor.cpp
+		VirtualSensor.cpp \
+                 Gyroscope.cpp \
 
-LOCAL_C_INCLUDES += external/libxml2/include	\
+LOCAL_C_INCLUDES += external/libxml2/include \
 		    external/icu/icu4c/source/common
 
 LOCAL_SHARED_LIBRARIES := liblog libcutils libdl libutils
