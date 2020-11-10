@@ -376,6 +376,10 @@ PRODUCT_PACKAGES += \
 PRODUCT_PACKAGES += \
     android.hardware.light@2.0-service.a6000
 
+# Touch
+PRODUCT_PACKAGES += \
+    vendor.lineage.touch@1.0-service.oppo_msm8916
+
 # Properties
 PRODUCT_PROPERTY_OVERRIDES += \
     drm.service.enabled=1 \
