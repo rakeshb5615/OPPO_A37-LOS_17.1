@@ -1,5 +1,6 @@
 /*
- * Copyright (C) 2016, The CyanogenMod Project
+ * Copyright (C) 2016 The CyanogenMod Project
+ * Copyright (C) 2017 The LineageOS Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,24 +22,22 @@
 *
 */
 
-#define LOG_NDEBUG 1
+//#define LOG_NDEBUG 0
 #define LOG_TAG "CameraWrapper"
-#include <cutils/log.h>
+#include <log/log.h>
 #include <cutils/properties.h>
 
-#include <hardware/hardware.h>
-#include <hardware/camera.h>
+#include <cutils/native_handle.h>
 #include <utils/threads.h>
 #include <utils/String8.h>
-#include <sensor/SensorManager.h>
+#include <hardware/hardware.h>
+#include <hardware/camera.h>
 #include <camera/Camera.h>
 #include <camera/CameraParameters.h>
+#include <media/hardware/HardwareAPI.h> // For VideoNativeHandleMetadata
 
 #define BACK_CAMERA     0
 #define FRONT_CAMERA    1
-
-#define OPEN_RETRIES    10
-#define OPEN_RETRY_MSEC 40
 
 using namespace android;
 
@@ -114,20 +113,12 @@ static int check_vendor_module()
     return rv;
 }
 
-static bool can_talk_to_sensormanager()
-{
-    SensorManager& sensorManager(
-            SensorManager::getInstanceForPackage(String16("camera")));
-    Sensor const * const * sensorList;
-    return sensorManager.getSensorList(&sensorList) >= 0;
-}
-
 static char *camera_fixup_getparams(int id, const char *settings)
 {
     CameraParameters params;
     params.unflatten(String8(settings));
 
-#if !LOG_NDEBUG
+#if !LOG_NDEBUG && defined(LOG_PARAMETERS)
     ALOGV("%s: original parameters:", __FUNCTION__);
     params.dump();
 #endif
@@ -350,10 +341,20 @@ static void camera_release_recording_frame(struct camera_device *device,
     if (!device)
         return;
 
+#ifdef CLOSE_NATIVE_HANDLE
+    VideoNativeHandleMetadata* md = (VideoNativeHandleMetadata*) opaque;
+    native_handle_t* nh = md->pHandle;
+#endif
+
     ALOGV("%s->%08X->%08X", __FUNCTION__, (uintptr_t)device,
             (uintptr_t)(((wrapper_camera_device_t*)device)->vendor));
 
     VENDOR_CALL(device, release_recording_frame, opaque);
+
+#ifdef CLOSE_NATIVE_HANDLE
+    native_handle_close(nh);
+    native_handle_delete(nh);
+#endif
 }
 
 static int camera_auto_focus(struct camera_device *device)
@@ -548,12 +549,6 @@ static int camera_device_open(const hw_module_t *module, const char *name,
         if (check_vendor_module())
             return -EINVAL;
 
-        if (!can_talk_to_sensormanager()) {
-            ALOGE("Waiting for sensor service failed.");
-            return NO_INIT;
-        }
-
-
         cameraid = atoi(name);
         num_cameras = gVendorModule->get_number_of_cameras();
 
@@ -583,16 +578,9 @@ static int camera_device_open(const hw_module_t *module, const char *name,
         camera_device->camera_released = false;
         camera_device->id = cameraid;
 
-        int retries = OPEN_RETRIES;
-        bool retry;
-        do {
-            rv = gVendorModule->common.methods->open(
-                    (const hw_module_t*)gVendorModule, name,
-                    (hw_device_t**)&(camera_device->vendor));
-            retry = --retries > 0 && rv;
-            if (retry)
-                usleep(OPEN_RETRY_MSEC * 1000);
-        } while (retry);
+        rv = gVendorModule->common.methods->open(
+                (const hw_module_t*)gVendorModule, name,
+                (hw_device_t**)&(camera_device->vendor));
         if (rv) {
             ALOGE("vendor camera open fail");
             goto fail;
